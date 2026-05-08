@@ -10,69 +10,40 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-let users = [];
-
 io.on("connection", socket => {
 
-    socket.on("join", user => {
+    socket.on("join-room", username => {
 
-        users.push({
+        socket.username = username;
+
+        socket.broadcast.emit("user-connected", {
             id: socket.id,
-            name: user.name
-        });
-
-        io.emit("users", users);
-
-        socket.broadcast.emit("message", {
-            user: "System",
-            text: `${user.name} joined`
+            username
         });
 
     });
+    
+    socket.on("signal", data => {
 
-    socket.on("message", data => {
-
-        io.emit("message", data);
+        io.to(data.to).emit("signal", {
+            from: socket.id,            signal: data.signal,
+            username: socket.username
+        });
 
     });
 
     socket.on("disconnect", () => {
 
-        const leavingUser =
-            users.find(
-                u => u.id === socket.id
-            );
-
-        users =
-            users.filter(
-                u => u.id !== socket.id
-            );
-
-        io.emit("users", users);
-
-        if(leavingUser){
-
-            io.emit("message", {
-                user: "System",
-                text:
-                leavingUser.name +
-                " left"
-            });
-
-        }
+        socket.broadcast.emit(
+            "user-disconnected",
+            socket.id
+        );
 
     });
 
 });
 
-const PORT =
-    process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-
-    console.log(
-        "Server running on port",
-        PORT
-    );
-
-});
+server.listen(
+    process.env.PORT || 3000,
+    () => console.log("Running")
+);
