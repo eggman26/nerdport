@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>NerdPort</title>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#0f172a;
+    color:white;
+    height:100vh;
+    overflow:hidden;
+}
+
+/* LOGIN */
+
+#login{
+    position:fixed;
+    inset:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.login-box{
+    width:400px;
+    background:#1e293b;
+    padding:30px;
+    border-radius:20px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:#334155;
+    color:white;
+    margin-bottom:15px;
+}
+
+button{
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:#2563eb;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1d4ed8;
+}
+
+.join-btn{
+    width:100%;
+}
+
+#error{
+    color:#f87171;
+    text-align:center;
+    margin-top:10px;
+}
+
+/* APP */
+
+#app{
+    display:none;
+    height:100vh;
+}
+
+.layout{
+    display:flex;
+    height:100%;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:250px;
+    background:#111827;
+    padding:15px;
+    overflow-y:auto;
+}
+
+.user{
+    background:#1e293b;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+/* MAIN */
+
+.main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    padding:15px;
+}
+
+#videos{
+    flex:1;
+    display:grid;
+    grid-template-columns:
+    repeat(auto-fill,minmax(300px,1fr));
+    gap:15px;
+    overflow-y:auto;
+}
+
+.video-box{
+    background:#1e293b;
+    padding:10px;
+    border-radius:15px;
+}
+
+.video-name{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+video{
+    width:100%;
+    border-radius:15px;
+    background:black;
+}
+
+/* CHAT */
+
+.messages{
+    height:220px;
+    overflow-y:auto;
+    background:#111827;
+    border-radius:15px;
+    padding:15px;
+    margin-top:15px;
+}
+
+.message{
+    background:#2563eb;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+/* BOTTOM */
+
+.bottom{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+}
+
+.bottom input{
+    flex:1;
+    margin:0;
+}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+
+<div id="login">
+
+    <div class="login-box">
+
+        <h1>NerdPort</h1>
+
+        <input
+        id="username"
+        placeholder="Username">
+
+        <input
+        type="password"
+        id="password"
+        placeholder="Password">
+
+        <button
+        class="join-btn"
+        onclick="joinChat()">
+            Join
+        </button>
+
+        <div id="error"></div>
+
+    </div>
+
+</div>
+
+<!-- APP -->
+
+<div id="app">
+
+    <div class="layout">
+
+        <!-- USERS -->
+
+        <div class="sidebar">
+
+            <h2
+            style="margin-bottom:15px;">
+                Users
+            </h2>
+
+            <div id="users"></div>
+
+        </div>
+
+        <!-- MAIN -->
+
+        <div class="main">
+
+            <div id="videos"></div>
+
+            <div
+            class="messages"
+            id="messages"></div>
+
+            <div class="bottom">
+
+                <input
+                id="messageInput"
+                placeholder="Message">
+
+                <button
+                onclick="sendMessage()">
+                    Send
+                </button>
+
+                <button
+                onclick="toggleMic()">
+                    Mic
+                </button>
+
+                <button
+                onclick="toggleCamera()">
+                    Camera
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const PASSWORD = "6741";
+
+const socket = io();
+
+let localStream;
+
+let username;
+
+/* JOIN */
+
+async function joinChat(){
+
+    username =
+        document
+        .getElementById(
+            "username"
+        ).value.trim();
+
+    const password =
+        document
+        .getElementById(
+            "password"
+        ).value;
+
+    const error =
+        document
+        .getElementById(
+            "error"
+        );
+
+    if(username === ""){
+
+        error.innerText =
+            "Enter username";
+
+        return;
+
+    }
+
+    if(password !== PASSWORD){
+
+        error.innerText =
+            "Wrong password";
+
+        return;
+
+    }
+
+    document
+    .getElementById(
+        "login"
+    ).style.display = "none";
+
+    document
+    .getElementById(
+        "app"
+    ).style.display = "block";
+
+    start();
+
+}
+
+/* START */
+
+async function start(){
+
+    try{
+
+        localStream =
+            await navigator
+            .mediaDevices
+            .getUserMedia({
+                video:true,
+                audio:true
+            });
+
+        addVideo(
+            localStream,
+            username + " (You)",
+            true
+        );
+
+        socket.emit("join", {
+            name: username
+        });
+
+    }catch(err){
+
+        alert(
+            "Camera or microphone blocked"
+        );
+
+    }
+
+}
+
+/* USERS */
+
+socket.on("users", users => {
+
+    const usersDiv =
+        document
+        .getElementById(
+            "users"
+        );
+
+    usersDiv.innerHTML = "";
+
+    users.forEach(user => {
+
+        const div =
+            document
+            .createElement("div");
+
+        div.className = "user";
+
+        div.innerText =
+            user.name;
+
+        usersDiv.appendChild(div);
+
+    });
+
+});
+
+/* CHAT */
+
+function sendMessage(){
+
+    const input =
+        document
+        .getElementById(
+            "messageInput"
+        );
+
+    if(input.value.trim()==="")
+        return;
+
+    socket.emit("message", {
+
+        user: username,
+
+        text: input.value
+
+    });
+
+    input.value = "";
+
+}
+
+socket.on("message", data => {
+
+    addMessage(
+        data.user +
+        ": " +
+        data.text
+    );
+
+});
+
+function addMessage(text){
+
+    const div =
+        document
+        .createElement("div");
+
+    div.className =
+        "message";
+
+    div.innerText =
+        text;
+
+    document
+    .getElementById(
+        "messages"
+    )
+    .appendChild(div);
+
+}
+
+/* VIDEO */
+
+function addVideo(
+    stream,
+    name,
+    muted
+){
+
+    const box =
+        document
+        .createElement("div");
+
+    box.className =
+        "video-box";
+
+    const title =
+        document
+        .createElement("div");
+
+    title.className =
+        "video-name";
+
+    title.innerText =
+        name;
+
+    const video =
+        document
+        .createElement("video");
+
+    video.srcObject =
+        stream;
+
+    video.autoplay = true;
+
+    video.playsInline = true;
+
+    video.muted = muted;
+
+    box.appendChild(title);
+
+    box.appendChild(video);
+
+    document
+    .getElementById(
+        "videos"
+    )
+    .appendChild(box);
+
+}
+
+/* MIC */
+
+function toggleMic(){
+
+    const track =
+        localStream
+        .getAudioTracks()[0];
+
+    track.enabled =
+        !track.enabled;
+
+}
+
+/* CAMERA */
+
+function toggleCamera(){
+
+    const track =
+        localStream
+        .getVideoTracks()[0];
+
+    track.enabled =
+        !track.enabled;
+
+}
+
+</script>
+
+</body>
+</html>
