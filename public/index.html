@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport"
 content="width=device-width,initial-scale=1.0">
 
@@ -20,12 +22,10 @@ content="width=device-width,initial-scale=1.0">
 body{
     background:#0f172a;
     color:white;
-    font-family:Arial,sans-serif;
+    font-family:Arial;
     height:100vh;
     overflow:hidden;
 }
-
-/* LOGIN */
 
 #login{
     position:fixed;
@@ -33,12 +33,7 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background:linear-gradient(
-        135deg,
-        #0f172a,
-        #111827,
-        #1e293b
-    );
+    background:#0f172a;
 }
 
 .login-box{
@@ -46,14 +41,6 @@ body{
     background:#1e293b;
     padding:35px;
     border-radius:24px;
-    box-shadow:
-    0 0 40px rgba(0,0,0,.4);
-}
-
-.login-box h1{
-    text-align:center;
-    margin-bottom:25px;
-    font-size:38px;
 }
 
 input{
@@ -64,12 +51,6 @@ input{
     border-radius:14px;
     background:#334155;
     color:white;
-    font-size:15px;
-    outline:none;
-}
-
-input::placeholder{
-    color:#cbd5e1;
 }
 
 button{
@@ -79,20 +60,7 @@ button{
     background:#2563eb;
     color:white;
     cursor:pointer;
-    transition:.2s;
-    font-size:15px;
 }
-
-button:hover{
-    transform:scale(1.03);
-    background:#1d4ed8;
-}
-
-.join-btn{
-    width:100%;
-}
-
-/* APP */
 
 #app{
     display:none;
@@ -105,77 +73,33 @@ button:hover{
     height:100%;
 }
 
-/* SIDEBAR */
-
 .sidebar{
     background:#111827;
     padding:20px;
-    border-right:
-    1px solid rgba(255,255,255,.08);
-    overflow-y:auto;
 }
-
-.logo{
-    font-size:28px;
-    font-weight:bold;
-    margin-bottom:25px;
-}
-
-.sidebar-title{
-    margin-bottom:15px;
-    color:#94a3b8;
-    font-size:14px;
-    text-transform:uppercase;
-}
-
-.user{
-    background:#1e293b;
-    padding:14px;
-    border-radius:14px;
-    margin-bottom:12px;
-}
-
-/* MAIN */
 
 .main{
     display:flex;
     flex-direction:column;
     padding:20px;
     gap:15px;
-    overflow:hidden;
-}
-
-.topbar{
-    background:#111827;
-    border-radius:18px;
-    padding:15px 20px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.controls{
-    display:flex;
-    gap:10px;
 }
 
 #videos{
     flex:1;
     display:grid;
     grid-template-columns:
-    repeat(auto-fill,minmax(320px,1fr));
-    gap:18px;
-    overflow-y:auto;
+    repeat(auto-fill,minmax(300px,1fr));
+    gap:15px;
+    overflow:auto;
 }
 
 .video-card{
     background:#1e293b;
-    border-radius:22px;
+    border-radius:20px;
     overflow:hidden;
     position:relative;
-    min-height:240px;
-    box-shadow:
-    0 0 25px rgba(0,0,0,.25);
+    height:240px;
 }
 
 video{
@@ -187,15 +111,12 @@ video{
 
 .video-label{
     position:absolute;
-    bottom:12px;
-    left:12px;
+    bottom:10px;
+    left:10px;
     background:rgba(0,0,0,.6);
     padding:8px 12px;
-    border-radius:12px;
-    font-size:14px;
+    border-radius:10px;
 }
-
-/* CHAT */
 
 .chat{
     height:220px;
@@ -203,53 +124,35 @@ video{
     border-radius:20px;
     display:flex;
     flex-direction:column;
-    overflow:hidden;
 }
 
 .messages{
     flex:1;
-    overflow-y:auto;
+    overflow:auto;
     padding:15px;
 }
 
 .message{
     background:#2563eb;
-    padding:12px;
-    border-radius:14px;
-    margin-bottom:12px;
-    width:fit-content;
-    max-width:80%;
+    padding:10px;
+    border-radius:12px;
+    margin-bottom:10px;
 }
 
 .chat-bottom{
     display:flex;
     gap:10px;
     padding:15px;
-    border-top:
-    1px solid rgba(255,255,255,.08);
 }
 
 .chat-bottom input{
     margin:0;
 }
 
-@media(max-width:900px){
-
-    .layout{
-        grid-template-columns:1fr;
-    }
-
-    .sidebar{
-        display:none;
-    }
-
-}
-
 </style>
+
 </head>
 <body>
-
-<!-- LOGIN -->
 
 <div id="login">
 
@@ -266,9 +169,7 @@ video{
         id="password"
         placeholder="Password">
 
-        <button
-        class="join-btn"
-        onclick="join()">
+        <button onclick="join()">
             Join
         </button>
 
@@ -276,59 +177,21 @@ video{
 
 </div>
 
-<!-- APP -->
-
 <div id="app">
 
     <div class="layout">
 
-        <!-- SIDEBAR -->
-
         <div class="sidebar">
 
-            <div class="logo">
-                NerdPort
-            </div>
-
-            <div class="sidebar-title">
-                Online Users
-            </div>
+            <h2>Users</h2>
 
             <div id="users"></div>
 
         </div>
 
-        <!-- MAIN -->
-
         <div class="main">
 
-            <div class="topbar">
-
-                <h2>
-                    Live Video Chat
-                </h2>
-
-                <div class="controls">
-
-                    <button
-                    onclick="toggleMic()">
-                        Mic
-                    </button>
-
-                    <button
-                    onclick="toggleCamera()">
-                        Camera
-                    </button>
-
-                </div>
-
-            </div>
-
-            <!-- VIDEOS -->
-
             <div id="videos"></div>
-
-            <!-- CHAT -->
 
             <div class="chat">
 
@@ -340,11 +203,21 @@ video{
 
                     <input
                     id="messageInput"
-                    placeholder="Send message">
+                    placeholder="Message">
 
                     <button
                     onclick="sendMessage()">
                         Send
+                    </button>
+
+                    <button
+                    onclick="toggleMic()">
+                        Mic
+                    </button>
+
+                    <button
+                    onclick="toggleCamera()">
+                        Camera
                     </button>
 
                 </div>
@@ -367,6 +240,8 @@ let localStream;
 
 let username;
 
+const peers = {};
+
 /* JOIN */
 
 async function join(){
@@ -385,9 +260,7 @@ async function join(){
 
     if(password !== PASSWORD){
 
-        alert(
-            "Wrong password"
-        );
+        alert("Wrong password");
 
         return;
 
@@ -417,10 +290,8 @@ async function join(){
         true
     );
 
-    addUser(username);
-
     socket.emit(
-        "join-room",
+        "join",
         username
     );
 
@@ -435,17 +306,13 @@ function addVideo(
 ){
 
     const card =
-        document.createElement(
-            "div"
-        );
+        document.createElement("div");
 
     card.className =
         "video-card";
 
     const video =
-        document.createElement(
-            "video"
-        );
+        document.createElement("video");
 
     video.srcObject =
         stream;
@@ -457,9 +324,7 @@ function addVideo(
     video.muted = muted;
 
     const label =
-        document.createElement(
-            "div"
-        );
+        document.createElement("div");
 
     label.className =
         "video-label";
@@ -481,24 +346,31 @@ function addVideo(
 
 /* USERS */
 
-function addUser(name){
+socket.on("users", users => {
 
-    const div =
-        document.createElement(
-            "div"
+    const usersDiv =
+        document
+        .getElementById(
+            "users"
         );
 
-    div.className = "user";
+    usersDiv.innerHTML = "";
 
-    div.innerText = name;
+    Object.values(users)
+    .forEach(name => {
 
-    document
-    .getElementById(
-        "users"
-    )
-    .appendChild(div);
+        const div =
+            document.createElement(
+                "div"
+            );
 
-}
+        div.innerText = name;
+
+        usersDiv.appendChild(div);
+
+    });
+
+});
 
 /* CHAT */
 
@@ -525,20 +397,7 @@ function sendMessage(){
 
 }
 
-socket.on(
-    "message",
-    data => {
-
-        addMessage(
-            data.user +
-            ": " +
-            data.text
-        );
-
-    }
-);
-
-function addMessage(text){
+socket.on("message", data => {
 
     const div =
         document.createElement(
@@ -549,7 +408,9 @@ function addMessage(text){
         "message";
 
     div.innerText =
-        text;
+        data.user +
+        ": " +
+        data.text;
 
     document
     .getElementById(
@@ -557,9 +418,9 @@ function addMessage(text){
     )
     .appendChild(div);
 
-}
+});
 
-/* MIC */
+/* TOGGLES */
 
 function toggleMic(){
 
@@ -571,8 +432,6 @@ function toggleMic(){
         !track.enabled;
 
 }
-
-/* CAMERA */
 
 function toggleCamera(){
 
