@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 
 <meta charset="UTF-8">
@@ -22,10 +22,12 @@ content="width=device-width,initial-scale=1.0">
 body{
     background:#0f172a;
     color:white;
-    font-family:Arial;
+    font-family:Arial,sans-serif;
     height:100vh;
     overflow:hidden;
 }
+
+/* LOGIN */
 
 #login{
     position:fixed;
@@ -33,7 +35,12 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background:#0f172a;
+    background:linear-gradient(
+        135deg,
+        #0f172a,
+        #111827,
+        #1e293b
+    );
 }
 
 .login-box{
@@ -41,6 +48,11 @@ body{
     background:#1e293b;
     padding:35px;
     border-radius:24px;
+}
+
+.login-box h1{
+    text-align:center;
+    margin-bottom:25px;
 }
 
 input{
@@ -51,6 +63,7 @@ input{
     border-radius:14px;
     background:#334155;
     color:white;
+    outline:none;
 }
 
 button{
@@ -62,6 +75,12 @@ button{
     cursor:pointer;
 }
 
+button:hover{
+    background:#1d4ed8;
+}
+
+/* APP */
+
 #app{
     display:none;
     height:100vh;
@@ -69,37 +88,72 @@ button{
 
 .layout{
     display:grid;
-    grid-template-columns:280px 1fr;
+    grid-template-columns:260px 1fr;
     height:100%;
 }
+
+/* SIDEBAR */
 
 .sidebar{
     background:#111827;
     padding:20px;
+    overflow-y:auto;
+    border-right:
+    1px solid rgba(255,255,255,.08);
 }
+
+.logo{
+    font-size:28px;
+    font-weight:bold;
+    margin-bottom:25px;
+}
+
+.user{
+    background:#1e293b;
+    padding:14px;
+    border-radius:14px;
+    margin-bottom:12px;
+}
+
+/* MAIN */
 
 .main{
     display:flex;
     flex-direction:column;
     padding:20px;
     gap:15px;
+    overflow:hidden;
+}
+
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:#111827;
+    padding:15px 20px;
+    border-radius:18px;
+}
+
+.controls{
+    display:flex;
+    gap:10px;
 }
 
 #videos{
     flex:1;
     display:grid;
     grid-template-columns:
-    repeat(auto-fill,minmax(300px,1fr));
-    gap:15px;
+    repeat(auto-fill,minmax(320px,1fr));
+    gap:18px;
     overflow:auto;
 }
 
 .video-card{
     background:#1e293b;
-    border-radius:20px;
+    border-radius:22px;
     overflow:hidden;
     position:relative;
-    height:240px;
+    min-height:240px;
 }
 
 video{
@@ -111,12 +165,15 @@ video{
 
 .video-label{
     position:absolute;
-    bottom:10px;
-    left:10px;
+    left:12px;
+    bottom:12px;
     background:rgba(0,0,0,.6);
     padding:8px 12px;
     border-radius:10px;
+    font-size:14px;
 }
+
+/* CHAT */
 
 .chat{
     height:220px;
@@ -124,6 +181,7 @@ video{
     border-radius:20px;
     display:flex;
     flex-direction:column;
+    overflow:hidden;
 }
 
 .messages{
@@ -137,6 +195,8 @@ video{
     padding:10px;
     border-radius:12px;
     margin-bottom:10px;
+    width:fit-content;
+    max-width:80%;
 }
 
 .chat-bottom{
@@ -147,6 +207,18 @@ video{
 
 .chat-bottom input{
     margin:0;
+}
+
+@media(max-width:900px){
+
+    .layout{
+        grid-template-columns:1fr;
+    }
+
+    .sidebar{
+        display:none;
+    }
+
 }
 
 </style>
@@ -183,13 +255,35 @@ video{
 
         <div class="sidebar">
 
-            <h2>Users</h2>
+            <div class="logo">
+                NerdPort
+            </div>
 
             <div id="users"></div>
 
         </div>
 
         <div class="main">
+
+            <div class="topbar">
+
+                <h2>Live Chat</h2>
+
+                <div class="controls">
+
+                    <button
+                    onclick="toggleMic()">
+                        Mic
+                    </button>
+
+                    <button
+                    onclick="toggleCamera()">
+                        Camera
+                    </button>
+
+                </div>
+
+            </div>
 
             <div id="videos"></div>
 
@@ -208,16 +302,6 @@ video{
                     <button
                     onclick="sendMessage()">
                         Send
-                    </button>
-
-                    <button
-                    onclick="toggleMic()">
-                        Mic
-                    </button>
-
-                    <button
-                    onclick="toggleCamera()">
-                        Camera
                     </button>
 
                 </div>
@@ -241,6 +325,16 @@ let localStream;
 let username;
 
 const peers = {};
+
+const config = {
+    iceServers:[
+        {
+            urls:[
+                "stun:stun.l.google.com:19302"
+            ]
+        }
+    ]
+};
 
 /* JOIN */
 
@@ -285,6 +379,7 @@ async function join(){
         });
 
     addVideo(
+        socket.id,
         localStream,
         username + " (You)",
         true
@@ -300,16 +395,26 @@ async function join(){
 /* VIDEO */
 
 function addVideo(
+    id,
     stream,
     name,
     muted
 ){
+
+    if(
+        document.getElementById(
+            "video-" + id
+        )
+    ) return;
 
     const card =
         document.createElement("div");
 
     card.className =
         "video-card";
+
+    card.id =
+        "video-" + id;
 
     const video =
         document.createElement("video");
@@ -349,8 +454,7 @@ function addVideo(
 socket.on("users", users => {
 
     const usersDiv =
-        document
-        .getElementById(
+        document.getElementById(
             "users"
         );
 
@@ -364,7 +468,11 @@ socket.on("users", users => {
                 "div"
             );
 
-        div.innerText = name;
+        div.className =
+            "user";
+
+        div.innerText =
+            name;
 
         usersDiv.appendChild(div);
 
@@ -372,13 +480,244 @@ socket.on("users", users => {
 
 });
 
+/* ALL USERS */
+
+socket.on(
+    "all-users",
+    users => {
+
+        Object.entries(users)
+        .forEach(([id,name]) => {
+
+            if(id === socket.id)
+                return;
+
+            createPeer(
+                id,
+                true,
+                name
+            );
+
+        });
+
+    }
+);
+
+/* USER CONNECT */
+
+socket.on(
+    "user-connected",
+    data => {
+
+        createPeer(
+            data.id,
+            false,
+            data.username
+        );
+
+    }
+);
+
+/* PEER */
+
+function createPeer(
+    id,
+    initiator,
+    name
+){
+
+    if(peers[id]) return;
+
+    const peer =
+        new RTCPeerConnection(
+            config
+        );
+
+    peers[id] = peer;
+
+    localStream
+    .getTracks()
+    .forEach(track => {
+
+        peer.addTrack(
+            track,
+            localStream
+        );
+
+    });
+
+    peer.ontrack = event => {
+
+        addVideo(
+            id,
+            event.streams[0],
+            name,
+            false
+        );
+
+    };
+
+    peer.onicecandidate = event => {
+
+        if(event.candidate){
+
+            socket.emit(
+                "signal",
+                {
+                    to:id,
+                    signal:{
+                        candidate:
+                        event.candidate
+                    }
+                }
+            );
+
+        }
+
+    };
+
+    if(initiator){
+
+        peer.createOffer()
+        .then(offer => {
+
+            return peer
+            .setLocalDescription(
+                offer
+            );
+
+        })
+        .then(() => {
+
+            socket.emit(
+                "signal",
+                {
+                    to:id,
+                    signal:{
+                        sdp:
+                        peer
+                        .localDescription
+                    }
+                }
+            );
+
+        });
+
+    }
+
+}
+
+/* SIGNAL */
+
+socket.on(
+    "signal",
+    async data => {
+
+        if(!peers[data.from]){
+
+            createPeer(
+                data.from,
+                false,
+                data.username
+            );
+
+        }
+
+        const peer =
+            peers[data.from];
+
+        if(data.signal.sdp){
+
+            await peer
+            .setRemoteDescription(
+                new RTCSessionDescription(
+                    data.signal.sdp
+                )
+            );
+
+            if(
+                data.signal.sdp.type
+                === "offer"
+            ){
+
+                const answer =
+                    await peer
+                    .createAnswer();
+
+                await peer
+                .setLocalDescription(
+                    answer
+                );
+
+                socket.emit(
+                    "signal",
+                    {
+                        to:data.from,
+                        signal:{
+                            sdp:
+                            peer
+                            .localDescription
+                        }
+                    }
+                );
+
+            }
+
+        }
+
+        if(data.signal.candidate){
+
+            try{
+
+                await peer
+                .addIceCandidate(
+                    new RTCIceCandidate(
+                        data.signal
+                        .candidate
+                    )
+                );
+
+            }catch(err){}
+
+        }
+
+    }
+);
+
+/* DISCONNECT */
+
+socket.on(
+    "user-disconnected",
+    id => {
+
+        if(peers[id]){
+
+            peers[id].close();
+
+            delete peers[id];
+
+        }
+
+        const video =
+            document.getElementById(
+                "video-" + id
+            );
+
+        if(video){
+
+            video.remove();
+
+        }
+
+    }
+);
+
 /* CHAT */
 
 function sendMessage(){
 
     const input =
-        document
-        .getElementById(
+        document.getElementById(
             "messageInput"
         );
 
@@ -397,28 +736,31 @@ function sendMessage(){
 
 }
 
-socket.on("message", data => {
+socket.on(
+    "message",
+    data => {
 
-    const div =
-        document.createElement(
-            "div"
-        );
+        const div =
+            document.createElement(
+                "div"
+            );
 
-    div.className =
-        "message";
+        div.className =
+            "message";
 
-    div.innerText =
-        data.user +
-        ": " +
-        data.text;
+        div.innerText =
+            data.user +
+            ": " +
+            data.text;
 
-    document
-    .getElementById(
-        "messages"
-    )
-    .appendChild(div);
+        document
+        .getElementById(
+            "messages"
+        )
+        .appendChild(div);
 
-});
+    }
+);
 
 /* TOGGLES */
 
