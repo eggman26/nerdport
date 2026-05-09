@@ -14,9 +14,13 @@ const users = {};
 
 io.on("connection", socket => {
 
+    console.log("Connected:", socket.id);
+
     socket.on("join", username => {
 
         users[socket.id] = username;
+
+        socket.emit("all-users", users);
 
         socket.broadcast.emit(
             "user-connected",
@@ -36,7 +40,8 @@ io.on("connection", socket => {
             "signal",
             {
                 from: socket.id,
-                signal: data.signal
+                signal: data.signal,
+                username: users[socket.id]
             }
         );
 
@@ -49,6 +54,11 @@ io.on("connection", socket => {
     });
 
     socket.on("disconnect", () => {
+
+        console.log(
+            "Disconnected:",
+            socket.id
+        );
 
         delete users[socket.id];
 
@@ -63,7 +73,14 @@ io.on("connection", socket => {
 
 });
 
-server.listen(
-    process.env.PORT || 3000,
-    () => console.log("Server Running")
-);
+const PORT =
+    process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+
+    console.log(
+        "Running on port",
+        PORT
+    );
+
+});
