@@ -10,29 +10,49 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
+const users = {};
+
 io.on("connection", socket => {
 
-    socket.on("join-room", username => {
+    socket.on("join", username => {
 
-        socket.username = username;
+        users[socket.id] = username;
 
-        socket.broadcast.emit("user-connected", {
-            id: socket.id,
-            username
-        });
+        socket.broadcast.emit(
+            "user-connected",
+            {
+                id: socket.id,
+                username
+            }
+        );
+
+        io.emit("users", users);
 
     });
-    
+
     socket.on("signal", data => {
 
-        io.to(data.to).emit("signal", {
-            from: socket.id,            signal: data.signal,
-            username: socket.username
-        });
+        io.to(data.to).emit(
+            "signal",
+            {
+                from: socket.id,
+                signal: data.signal
+            }
+        );
+
+    });
+
+    socket.on("message", data => {
+
+        io.emit("message", data);
 
     });
 
     socket.on("disconnect", () => {
+
+        delete users[socket.id];
+
+        io.emit("users", users);
 
         socket.broadcast.emit(
             "user-disconnected",
@@ -45,5 +65,5 @@ io.on("connection", socket => {
 
 server.listen(
     process.env.PORT || 3000,
-    () => console.log("Running")
+    () => console.log("Server Running")
 );
