@@ -326,12 +326,11 @@ let username;
 
 const peers = {};
 
-const config = {
+const iceConfig = {
     iceServers:[
         {
-            urls:[
-                "stun:stun.l.google.com:19302"
-            ]
+            urls:
+            "stun:stun.l.google.com:19302"
         }
     ]
 };
@@ -360,6 +359,26 @@ async function join(){
 
     }
 
+    try{
+
+        localStream =
+            await navigator
+            .mediaDevices
+            .getUserMedia({
+                video:true,
+                audio:true
+            });
+
+    }catch(err){
+
+        alert(
+            "Camera/Microphone blocked"
+        );
+
+        return;
+
+    }
+
     document
     .getElementById(
         "login"
@@ -369,14 +388,6 @@ async function join(){
     .getElementById(
         "app"
     ).style.display = "block";
-
-    localStream =
-        await navigator
-        .mediaDevices
-        .getUserMedia({
-            video:true,
-            audio:true
-        });
 
     addVideo(
         socket.id,
@@ -408,7 +419,9 @@ function addVideo(
     ) return;
 
     const card =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     card.className =
         "video-card";
@@ -417,7 +430,9 @@ function addVideo(
         "video-" + id;
 
     const video =
-        document.createElement("video");
+        document.createElement(
+            "video"
+        );
 
     video.srcObject =
         stream;
@@ -428,8 +443,17 @@ function addVideo(
 
     video.muted = muted;
 
+    video.onloadedmetadata =
+        () => {
+
+        video.play();
+
+    };
+
     const label =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     label.className =
         "video-label";
@@ -451,36 +475,41 @@ function addVideo(
 
 /* USERS */
 
-socket.on("users", users => {
+socket.on(
+    "users",
+    users => {
 
-    const usersDiv =
-        document.getElementById(
-            "users"
-        );
-
-    usersDiv.innerHTML = "";
-
-    Object.values(users)
-    .forEach(name => {
-
-        const div =
-            document.createElement(
-                "div"
+        const usersDiv =
+            document
+            .getElementById(
+                "users"
             );
 
-        div.className =
-            "user";
+        usersDiv.innerHTML = "";
 
-        div.innerText =
-            name;
+        Object.values(users)
+        .forEach(name => {
 
-        usersDiv.appendChild(div);
+            const div =
+                document
+                .createElement(
+                    "div"
+                );
 
-    });
+            div.className =
+                "user";
 
-});
+            div.innerText =
+                name;
 
-/* ALL USERS */
+            usersDiv.appendChild(div);
+
+        });
+
+    }
+);
+
+/* EXISTING USERS */
 
 socket.on(
     "all-users",
@@ -503,7 +532,7 @@ socket.on(
     }
 );
 
-/* USER CONNECT */
+/* NEW USER */
 
 socket.on(
     "user-connected",
@@ -520,7 +549,7 @@ socket.on(
 
 /* PEER */
 
-function createPeer(
+async function createPeer(
     id,
     initiator,
     name
@@ -530,7 +559,7 @@ function createPeer(
 
     const peer =
         new RTCPeerConnection(
-            config
+            iceConfig
         );
 
     peers[id] = peer;
@@ -557,7 +586,8 @@ function createPeer(
 
     };
 
-    peer.onicecandidate = event => {
+    peer.onicecandidate =
+        event => {
 
         if(event.candidate){
 
@@ -578,30 +608,25 @@ function createPeer(
 
     if(initiator){
 
-        peer.createOffer()
-        .then(offer => {
+        const offer =
+            await peer
+            .createOffer();
 
-            return peer
-            .setLocalDescription(
-                offer
-            );
+        await peer
+        .setLocalDescription(
+            offer
+        );
 
-        })
-        .then(() => {
-
-            socket.emit(
-                "signal",
-                {
-                    to:id,
-                    signal:{
-                        sdp:
-                        peer
-                        .localDescription
-                    }
+        socket.emit(
+            "signal",
+            {
+                to:id,
+                signal:{
+                    sdp:
+                    peer.localDescription
                 }
-            );
-
-        });
+            }
+        );
 
     }
 
@@ -613,18 +638,21 @@ socket.on(
     "signal",
     async data => {
 
-        if(!peers[data.from]){
+        let peer =
+            peers[data.from];
 
-            createPeer(
+        if(!peer){
+
+            await createPeer(
                 data.from,
                 false,
                 data.username
             );
 
-        }
+            peer =
+                peers[data.from];
 
-        const peer =
-            peers[data.from];
+        }
 
         if(data.signal.sdp){
 
@@ -677,7 +705,11 @@ socket.on(
                     )
                 );
 
-            }catch(err){}
+            }catch(err){
+
+                console.log(err);
+
+            }
 
         }
 
@@ -717,7 +749,8 @@ socket.on(
 function sendMessage(){
 
     const input =
-        document.getElementById(
+        document
+        .getElementById(
             "messageInput"
         );
 
@@ -741,7 +774,8 @@ socket.on(
     data => {
 
         const div =
-            document.createElement(
+            document
+            .createElement(
                 "div"
             );
 
@@ -762,7 +796,7 @@ socket.on(
     }
 );
 
-/* TOGGLES */
+/* MIC */
 
 function toggleMic(){
 
@@ -774,6 +808,8 @@ function toggleMic(){
         !track.enabled;
 
 }
+
+/* CAMERA */
 
 function toggleCamera(){
 
