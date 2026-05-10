@@ -20,9 +20,9 @@ content="width=device-width,initial-scale=1.0">
 }
 
 body{
-    background:#05abab;
+    background:#0f172a;
     color:white;
-    font-family:sans-serif;
+    font-family:Arial,sans-serif;
     height:100vh;
     overflow:hidden;
 }
@@ -35,7 +35,12 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background:#05abab;
+    background:linear-gradient(
+        135deg,
+        #0f172a,
+        #111827,
+        #1e293b
+    );
 }
 
 .login-box{
@@ -313,25 +318,14 @@ video{
 
 <script>
 
-const PASSWORD_HASH =
-"c7d4b8f0b6f0a9d3f1f22e3e8d4e7a91";
+const PASSWORD_CODE =
+"5-7-7-13-1-14";
 
 const socket = io();
 
 let localStream;
 
 let username;
-
-const peers = {};
-
-const iceConfig = {
-    iceServers:[
-        {
-            urls:
-            "stun:stun.l.google.com:19302"
-        }
-    ]
-};
 
 /* JOIN */
 
@@ -347,36 +341,22 @@ async function join(){
         document
         .getElementById(
             "password"
-        ).value;
+        ).value
+        .toLowerCase();
 
-    const encoder =
-        new TextEncoder();
+    const encoded =
+        password
+        .split("")
+        .map(letter => {
 
-    const data =
-        encoder.encode(password);
+            return (
+                letter.charCodeAt(0) - 96
+            );
 
-    const hashBuffer =
-        await crypto.subtle.digest(
-            "SHA-256",
-            data
-        );
+        })
+        .join("-");
 
-    const hashArray =
-        Array.from(
-            new Uint8Array(
-                hashBuffer
-            )
-        );
-
-    const hash =
-        hashArray
-        .map(b =>
-            b.toString(16)
-            .padStart(2,"0")
-        )
-        .join("");
-
-    if(hash !== PASSWORD_HASH){
+    if(encoded !== PASSWORD_CODE){
 
         alert("Wrong password");
 
@@ -415,15 +395,9 @@ async function join(){
     ).style.display = "block";
 
     addVideo(
-        socket.id,
         localStream,
         username + " (You)",
         true
-    );
-
-    socket.emit(
-        "join",
-        username
     );
 
     updateMicButtons();
@@ -433,17 +407,10 @@ async function join(){
 /* VIDEO */
 
 function addVideo(
-    id,
     stream,
     name,
     muted
 ){
-
-    if(
-        document.getElementById(
-            "video-" + id
-        )
-    ) return;
 
     const card =
         document.createElement(
@@ -452,9 +419,6 @@ function addVideo(
 
     card.className =
         "video-card";
-
-    card.id =
-        "video-" + id;
 
     const video =
         document.createElement(
@@ -500,42 +464,6 @@ function addVideo(
 
 }
 
-/* USERS */
-
-socket.on(
-    "users",
-    users => {
-
-        const usersDiv =
-            document
-            .getElementById(
-                "users"
-            );
-
-        usersDiv.innerHTML = "";
-
-        Object.values(users)
-        .forEach(name => {
-
-            const div =
-                document
-                .createElement(
-                    "div"
-                );
-
-            div.className =
-                "user";
-
-            div.innerText =
-                name;
-
-            usersDiv.appendChild(div);
-
-        });
-
-    }
-);
-
 /* CHAT */
 
 function sendMessage(){
@@ -549,44 +477,29 @@ function sendMessage(){
     if(input.value.trim()==="")
         return;
 
-    socket.emit(
-        "message",
-        {
-            user:username,
-            text:input.value
-        }
-    );
+    const div =
+        document
+        .createElement(
+            "div"
+        );
+
+    div.className =
+        "message";
+
+    div.innerText =
+        username +
+        ": " +
+        input.value;
+
+    document
+    .getElementById(
+        "messages"
+    )
+    .appendChild(div);
 
     input.value = "";
 
 }
-
-socket.on(
-    "message",
-    data => {
-
-        const div =
-            document
-            .createElement(
-                "div"
-            );
-
-        div.className =
-            "message";
-
-        div.innerText =
-            data.user +
-            ": " +
-            data.text;
-
-        document
-        .getElementById(
-            "messages"
-        )
-        .appendChild(div);
-
-    }
-);
 
 /* MIC */
 
