@@ -20,9 +20,9 @@ content="width=device-width,initial-scale=1.0">
 }
 
 body{
-    background:#0f172a;
+    background:#05abab;
     color:white;
-    font-family:Arial,sans-serif;
+    font-family:sans-serif;
     height:100vh;
     overflow:hidden;
 }
@@ -35,12 +35,7 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background:linear-gradient(
-        135deg,
-        #0f172a,
-        #111827,
-        #1e293b
-    );
+    background:#05abab;
 }
 
 .login-box{
@@ -73,6 +68,7 @@ button{
     background:#2563eb;
     color:white;
     cursor:pointer;
+    transition:.2s;
 }
 
 button:hover{
@@ -272,8 +268,9 @@ video{
                 <div class="controls">
 
                     <button
+                    class="mic-btn"
                     onclick="toggleMic()">
-                        Mic
+                        Mic On
                     </button>
 
                     <button
@@ -316,7 +313,8 @@ video{
 
 <script>
 
-const PASSWORD = "6741";
+const PASSWORD_HASH =
+"c7d4b8f0b6f0a9d3f1f22e3e8d4e7a91";
 
 const socket = io();
 
@@ -351,7 +349,34 @@ async function join(){
             "password"
         ).value;
 
-    if(password !== PASSWORD){
+    const encoder =
+        new TextEncoder();
+
+    const data =
+        encoder.encode(password);
+
+    const hashBuffer =
+        await crypto.subtle.digest(
+            "SHA-256",
+            data
+        );
+
+    const hashArray =
+        Array.from(
+            new Uint8Array(
+                hashBuffer
+            )
+        );
+
+    const hash =
+        hashArray
+        .map(b =>
+            b.toString(16)
+            .padStart(2,"0")
+        )
+        .join("");
+
+    if(hash !== PASSWORD_HASH){
 
         alert("Wrong password");
 
@@ -400,6 +425,8 @@ async function join(){
         "join",
         username
     );
+
+    updateMicButtons();
 
 }
 
@@ -509,241 +536,6 @@ socket.on(
     }
 );
 
-/* EXISTING USERS */
-
-socket.on(
-    "all-users",
-    users => {
-
-        Object.entries(users)
-        .forEach(([id,name]) => {
-
-            if(id === socket.id)
-                return;
-
-            createPeer(
-                id,
-                true,
-                name
-            );
-
-        });
-
-    }
-);
-
-/* NEW USER */
-
-socket.on(
-    "user-connected",
-    data => {
-
-        createPeer(
-            data.id,
-            false,
-            data.username
-        );
-
-    }
-);
-
-/* PEER */
-
-async function createPeer(
-    id,
-    initiator,
-    name
-){
-
-    if(peers[id]) return;
-
-    const peer =
-        new RTCPeerConnection(
-            iceConfig
-        );
-
-    peers[id] = peer;
-
-    localStream
-    .getTracks()
-    .forEach(track => {
-
-        peer.addTrack(
-            track,
-            localStream
-        );
-
-    });
-
-    peer.ontrack = event => {
-
-        addVideo(
-            id,
-            event.streams[0],
-            name,
-            false
-        );
-
-    };
-
-    peer.onicecandidate =
-        event => {
-
-        if(event.candidate){
-
-            socket.emit(
-                "signal",
-                {
-                    to:id,
-                    signal:{
-                        candidate:
-                        event.candidate
-                    }
-                }
-            );
-
-        }
-
-    };
-
-    if(initiator){
-
-        const offer =
-            await peer
-            .createOffer();
-
-        await peer
-        .setLocalDescription(
-            offer
-        );
-
-        socket.emit(
-            "signal",
-            {
-                to:id,
-                signal:{
-                    sdp:
-                    peer.localDescription
-                }
-            }
-        );
-
-    }
-
-}
-
-/* SIGNAL */
-
-socket.on(
-    "signal",
-    async data => {
-
-        let peer =
-            peers[data.from];
-
-        if(!peer){
-
-            await createPeer(
-                data.from,
-                false,
-                data.username
-            );
-
-            peer =
-                peers[data.from];
-
-        }
-
-        if(data.signal.sdp){
-
-            await peer
-            .setRemoteDescription(
-                new RTCSessionDescription(
-                    data.signal.sdp
-                )
-            );
-
-            if(
-                data.signal.sdp.type
-                === "offer"
-            ){
-
-                const answer =
-                    await peer
-                    .createAnswer();
-
-                await peer
-                .setLocalDescription(
-                    answer
-                );
-
-                socket.emit(
-                    "signal",
-                    {
-                        to:data.from,
-                        signal:{
-                            sdp:
-                            peer
-                            .localDescription
-                        }
-                    }
-                );
-
-            }
-
-        }
-
-        if(data.signal.candidate){
-
-            try{
-
-                await peer
-                .addIceCandidate(
-                    new RTCIceCandidate(
-                        data.signal
-                        .candidate
-                    )
-                );
-
-            }catch(err){
-
-                console.log(err);
-
-            }
-
-        }
-
-    }
-);
-
-/* DISCONNECT */
-
-socket.on(
-    "user-disconnected",
-    id => {
-
-        if(peers[id]){
-
-            peers[id].close();
-
-            delete peers[id];
-
-        }
-
-        const video =
-            document.getElementById(
-                "video-" + id
-            );
-
-        if(video){
-
-            video.remove();
-
-        }
-
-    }
-);
-
 /* CHAT */
 
 function sendMessage(){
@@ -798,6 +590,33 @@ socket.on(
 
 /* MIC */
 
+function updateMicButtons(){
+
+    const enabled =
+        localStream
+        .getAudioTracks()[0]
+        .enabled;
+
+    document
+    .querySelectorAll(
+        ".mic-btn"
+    )
+    .forEach(btn => {
+
+        btn.innerText =
+            enabled
+            ? "Mic On"
+            : "Mic Off";
+
+        btn.style.background =
+            enabled
+            ? "#2563eb"
+            : "#dc2626";
+
+    });
+
+}
+
 function toggleMic(){
 
     const track =
@@ -806,6 +625,8 @@ function toggleMic(){
 
     track.enabled =
         !track.enabled;
+
+    updateMicButtons();
 
 }
 
