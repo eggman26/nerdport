@@ -279,8 +279,9 @@ video{
                     </button>
 
                     <button
+                    class="camera-btn"
                     onclick="toggleCamera()">
-                        Camera
+                        Camera On
                     </button>
 
                     <button
@@ -330,7 +331,10 @@ video{
 const PASSWORD_CODE =
 "5-7-7-13-1-14";
 
-const socket = io();
+const socket = io({
+    reconnection:true,
+    reconnectionAttempts:999
+});
 
 let localStream;
 
@@ -367,7 +371,8 @@ async function join(){
         .map(letter => {
 
             return (
-                letter.charCodeAt(0) - 96
+                letter.charCodeAt(0)
+                - 96
             );
 
         })
@@ -387,14 +392,20 @@ async function join(){
             await navigator
             .mediaDevices
             .getUserMedia({
-                video:true,
-                audio:true
+                video:{
+                    width:1280,
+                    height:720
+                },
+                audio:{
+                    echoCancellation:true,
+                    noiseSuppression:true
+                }
             });
 
     }catch(err){
 
         alert(
-            "Camera/Microphone blocked"
+            "Camera/Mic blocked"
         );
 
         return;
@@ -404,12 +415,14 @@ async function join(){
     document
     .getElementById(
         "login"
-    ).style.display = "none";
+    ).style.display =
+    "none";
 
     document
     .getElementById(
         "app"
-    ).style.display = "block";
+    ).style.display =
+    "block";
 
     if(isAdmin){
 
@@ -434,6 +447,8 @@ async function join(){
     );
 
     updateMicButtons();
+
+    updateCameraButton();
 
 }
 
@@ -585,6 +600,25 @@ socket.on(
     }
 );
 
+/* ENTER KEY */
+
+document
+.getElementById(
+    "messageInput"
+)
+.addEventListener(
+    "keydown",
+    e => {
+
+        if(e.key === "Enter"){
+
+            sendMessage();
+
+        }
+
+    }
+);
+
 /* KICK */
 
 socket.on(
@@ -592,10 +626,23 @@ socket.on(
     () => {
 
         alert(
-            "You were kicked by admin"
+            "You were kicked"
         );
 
         location.reload();
+
+    }
+);
+
+/* ANNOUNCEMENT */
+
+socket.on(
+    "announcement",
+    text => {
+
+        alert(
+            "ADMIN: " + text
+        );
 
     }
 );
@@ -644,6 +691,31 @@ function toggleMic(){
 
 /* CAMERA */
 
+function updateCameraButton(){
+
+    const enabled =
+        localStream
+        .getVideoTracks()[0]
+        .enabled;
+
+    const btn =
+        document
+        .querySelector(
+            ".camera-btn"
+        );
+
+    btn.innerText =
+        enabled
+        ? "Camera On"
+        : "Camera Off";
+
+    btn.style.background =
+        enabled
+        ? "#2563eb"
+        : "#dc2626";
+
+}
+
 function toggleCamera(){
 
     const track =
@@ -653,6 +725,8 @@ function toggleCamera(){
     track.enabled =
         !track.enabled;
 
+    updateCameraButton();
+
 }
 
 /* ADMIN */
@@ -661,12 +735,15 @@ function adminPanel(){
 
     const action =
         prompt(
-`Admin Commands:
+`Admin Commands
 
 1 = Clear Chat
-2 = Close Videos
-3 = Kick User`
+2 = Remove Videos
+3 = Kick User
+4 = Announcement`
         );
+
+    /* CLEAR CHAT */
 
     if(action === "1"){
 
@@ -678,6 +755,8 @@ function adminPanel(){
 
     }
 
+    /* REMOVE VIDEOS */
+
     if(action === "2"){
 
         document
@@ -688,16 +767,34 @@ function adminPanel(){
 
     }
 
+    /* KICK */
+
     if(action === "3"){
 
         const target =
             prompt(
-                "Enter username to kick"
+                "Username to kick"
             );
 
         socket.emit(
             "kick-user",
             target
+        );
+
+    }
+
+    /* ANNOUNCEMENT */
+
+    if(action === "4"){
+
+        const text =
+            prompt(
+                "Announcement"
+            );
+
+        socket.emit(
+            "announcement",
+            text
         );
 
     }
