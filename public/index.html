@@ -20,7 +20,7 @@ content="width=device-width,initial-scale=1.0">
 }
 
 body{
-    background:#05abab;
+    background:#0f172a;
     color:white;
     font-family:Arial,sans-serif;
     height:100vh;
@@ -35,12 +35,17 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background:#05abab;
+    background:linear-gradient(
+        135deg,
+        #0f172a,
+        #111827,
+        #1e293b
+    );
 }
 
 .login-box{
     width:400px;
-    background:#05dfdf;
+    background:#1e293b;
     padding:35px;
     border-radius:24px;
 }
@@ -65,7 +70,7 @@ button{
     padding:14px 18px;
     border:none;
     border-radius:14px;
-    background:#05dfdf;
+    background:#2563eb;
     color:white;
     cursor:pointer;
     transition:.2s;
@@ -278,6 +283,15 @@ video{
                         Camera
                     </button>
 
+                    <button
+                    id="adminBtn"
+                    onclick="adminPanel()"
+                    style="
+                    display:none;
+                    background:#dc2626;">
+                        Admin
+                    </button>
+
                 </div>
 
             </div>
@@ -322,6 +336,8 @@ let localStream;
 
 let username;
 
+let isAdmin = false;
+
 /* JOIN */
 
 async function join(){
@@ -331,6 +347,12 @@ async function join(){
         .getElementById(
             "username"
         ).value.trim();
+
+    if(username === "Eggman_26"){
+
+        isAdmin = true;
+
+    }
 
     const password =
         document
@@ -389,10 +411,26 @@ async function join(){
         "app"
     ).style.display = "block";
 
+    if(isAdmin){
+
+        document
+        .getElementById(
+            "adminBtn"
+        )
+        .style.display =
+        "inline-block";
+
+    }
+
     addVideo(
         localStream,
         username + " (You)",
         true
+    );
+
+    socket.emit(
+        "join",
+        username
     );
 
     updateMicButtons();
@@ -459,6 +497,42 @@ function addVideo(
 
 }
 
+/* USERS */
+
+socket.on(
+    "users",
+    users => {
+
+        const usersDiv =
+            document
+            .getElementById(
+                "users"
+            );
+
+        usersDiv.innerHTML = "";
+
+        Object.values(users)
+        .forEach(name => {
+
+            const div =
+                document
+                .createElement(
+                    "div"
+                );
+
+            div.className =
+                "user";
+
+            div.innerText =
+                name;
+
+            usersDiv.appendChild(div);
+
+        });
+
+    }
+);
+
 /* CHAT */
 
 function sendMessage(){
@@ -472,29 +546,59 @@ function sendMessage(){
     if(input.value.trim()==="")
         return;
 
-    const div =
-        document
-        .createElement(
-            "div"
-        );
-
-    div.className =
-        "message";
-
-    div.innerText =
-        username +
-        ": " +
-        input.value;
-
-    document
-    .getElementById(
-        "messages"
-    )
-    .appendChild(div);
+    socket.emit(
+        "message",
+        {
+            user:username,
+            text:input.value
+        }
+    );
 
     input.value = "";
 
 }
+
+socket.on(
+    "message",
+    data => {
+
+        const div =
+            document
+            .createElement(
+                "div"
+            );
+
+        div.className =
+            "message";
+
+        div.innerText =
+            data.user +
+            ": " +
+            data.text;
+
+        document
+        .getElementById(
+            "messages"
+        )
+        .appendChild(div);
+
+    }
+);
+
+/* KICK */
+
+socket.on(
+    "kicked",
+    () => {
+
+        alert(
+            "You were kicked by admin"
+        );
+
+        location.reload();
+
+    }
+);
 
 /* MIC */
 
@@ -548,6 +652,55 @@ function toggleCamera(){
 
     track.enabled =
         !track.enabled;
+
+}
+
+/* ADMIN */
+
+function adminPanel(){
+
+    const action =
+        prompt(
+`Admin Commands:
+
+1 = Clear Chat
+2 = Close Videos
+3 = Kick User`
+        );
+
+    if(action === "1"){
+
+        document
+        .getElementById(
+            "messages"
+        )
+        .innerHTML = "";
+
+    }
+
+    if(action === "2"){
+
+        document
+        .getElementById(
+            "videos"
+        )
+        .innerHTML = "";
+
+    }
+
+    if(action === "3"){
+
+        const target =
+            prompt(
+                "Enter username to kick"
+            );
+
+        socket.emit(
+            "kick-user",
+            target
+        );
+
+    }
 
 }
 
